@@ -56,9 +56,15 @@ macos-app/
     ├── LegendView.swift                   Kategorien-Legende oben
     ├── FlowLayout.swift                   Wrap-Layout für die Legende
     ├── Element.swift                      Datentypen (Element, ElementCategory)
-    └── ElementsData.swift                 Auto-generiert aus index.html – 118 Einträge
+    ├── ElementsData.swift                 Aggregator: alle 118 Elemente (siehe unten)
+    ├── ElementsData_1_30.swift            Wasserstoff bis Zink
+    ├── ElementsData_31_60.swift           Gallium bis Neodym
+    ├── ElementsData_61_90.swift           Promethium bis Thorium
+    └── ElementsData_91_118.swift          Protactinium bis Oganesson
 ```
+
+Die vier `ElementsData_*_*.swift`-Dateien sind aus `index.html` automatisch generiert. Sie sind nach Ordnungszahl-Bereich aufgeteilt, weil eine einzelne Datei mit 118 Element-Literalen unhandlich groß wäre. `ElementsData.all` setzt die Teile am Ende einfach wieder zusammen.
 
 ## Daten aktualisieren
 
-`Sources/Periodensystem/ElementsData.swift` wurde aus dem JS-Objekt in `index.html` generiert. Wenn du in der HTML einen Wert änderst, kannst du die Swift-Datei mit dem Konverterskript (siehe Commit-History) neu erzeugen oder von Hand anpassen.
+Wenn du Werte in `index.html` änderst, kannst du die Swift-Daten neu erzeugen (siehe Konverterskript in der Commit-History des PRs) oder die entsprechenden Einträge in den `ElementsData_*_*.swift`-Dateien direkt anpassen.
