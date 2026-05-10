@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Periodensystem der Elemente – Dashboard</title>
+<style>
+  :root{
+    --bg:#0f1226;
+    --panel:#1a1f3d;
+    --text:#e8ecf8;
+    --muted:#9aa3c4;
+    --accent:#5fc3ff;
+    --border:#2a3155;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:linear-gradient(135deg,#0f1226 0%,#1a1f3d 100%);
+    color:var(--text);
+    min-height:100vh;
+    padding:20px;
+  }
+  h1{
+    text-align:center;
+    margin:0 0 8px;
+    font-weight:600;
+    letter-spacing:.5px;
+  }
+  .subtitle{
+    text-align:center;
+    color:var(--muted);
+    margin-bottom:24px;
+    font-size:14px;
+  }
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:8px;
+    margin-bottom:20px;
+    font-size:11px;
+  }
+  .legend span{
+    padding:4px 10px;
+    border-radius:12px;
+    color:#0f1226;
+    font-weight:600;
+  }
+  .ptable{
+    display:grid;
+    grid-template-columns:repeat(18, minmax(40px,1fr));
+    gap:4px;
+    max-width:1400px;
+    margin:0 auto;
+  }
+  .cell{
+    aspect-ratio:1/1;
+    border-radius:6px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    color:#0f1226;
+    font-weight:600;
+    transition:transform .15s ease, box-shadow .15s ease;
+    padding:2px;
+    user-select:none;
+    position:relative;
+  }
+  .cell:hover{
+    transform:scale(1.15);
+    z-index:5;
+    box-shadow:0 8px 20px rgba(0,0,0,.5);
+  }
+  .cell .num{font-size:9px;align-self:flex-start;margin-left:4px;opacity:.8}
+  .cell .sym{font-size:18px;line-height:1}
+  .cell .nm{font-size:8px;margin-top:2px;text-align:center;line-height:1}
+  .empty{background:transparent;cursor:default}
+  .empty:hover{transform:none;box-shadow:none}
+
+  /* Kategorien */
+  .nonmetal{background:#a3e4a1}
+  .noblegas{background:#ffd166}
+  .alkali{background:#ff9a76}
+  .alkaline{background:#ffba6b}
+  .transition{background:#9bd1ff}
+  .posttransition{background:#c9c9e3}
+  .metalloid{background:#dcd06f}
+  .halogen{background:#ffe066}
+  .lanthanide{background:#f5a8d8}
+  .actinide{background:#f08fc4}
+  .unknown{background:#bbbbbb}
+  .label-row{
+    grid-column:1 / -1;
+    text-align:center;
+    color:var(--muted);
+    font-size:12px;
+    margin-top:14px;
+    padding-top:8px;
+    border-top:1px solid var(--border);
+  }
+
+  /* Modal */
+  .overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.7);
+    display:none;
+    align-items:flex-start;
+    justify-content:center;
+    z-index:100;
+    padding:40px 20px;
+    overflow-y:auto;
+  }
+  .overlay.show{display:flex}
+  .modal{
+    background:var(--panel);
+    border-radius:14px;
+    max-width:760px;
+    width:100%;
+    padding:28px 32px;
+    box-shadow:0 20px 60px rgba(0,0,0,.6);
+    border:1px solid var(--border);
+    position:relative;
+  }
+  .close-btn{
+    position:absolute;
+    top:14px;
+    right:14px;
+    background:#ff5470;
+    color:white;
+    border:none;
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    font-size:18px;
+    font-weight:700;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:background .15s;
+  }
+  .close-btn:hover{background:#ff2f56}
+  .modal h2{
+    margin:0 0 4px;
+    font-size:28px;
+    color:var(--accent);
+  }
+  .modal .symb{
+    font-size:14px;
+    color:var(--muted);
+    margin-bottom:18px;
+  }
+  .section{
+    margin:14px 0;
+    padding:12px 14px;
+    background:rgba(255,255,255,.03);
+    border-left:3px solid var(--accent);
+    border-radius:6px;
+  }
+  .section h3{
+    margin:0 0 6px;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:.6px;
+    color:var(--accent);
+    font-weight:600;
+  }
+  .section p,.section ul{
+    margin:4px 0;
+    font-size:14px;
+    color:var(--text);
+    line-height:1.5;
+  }
+  .section ul{padding-left:20px}
+  .grid2{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  .grid3{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+  }
+  .stat{
+    background:rgba(95,195,255,.08);
+    padding:10px;
+    border-radius:6px;
+    text-align:center;
+  }
+  .stat .v{font-size:20px;font-weight:700;color:var(--accent)}
+  .stat .l{font-size:11px;color:var(--muted);text-transform:uppercase;margin-top:2px}
+  @media(max-width:900px){
+    .ptable{grid-template-columns:repeat(18,minmax(28px,1fr));gap:2px}
+    .cell .nm{display:none}
+    .cell .sym{font-size:13px}
+    .cell .num{font-size:7px}
+    .grid2,.grid3{grid-template-columns:1fr}
+  }
+  footer.copyright{
+    text-align:center;
+    margin-top:40px;
+    padding:18px 10px;
+    color:var(--muted);
+    font-size:13px;
+    letter-spacing:.5px;
+    border-top:1px solid var(--border);
+  }
+  footer.copyright .sym{
+    color:var(--accent);
+    font-weight:700;
+    margin-right:4px;
+  }
+</style>
+</head>
+<body>
+<h1>Periodensystem der Elemente</h1>
+<p class="subtitle">Klicke auf ein Element für Details (DE/FR/EN/Latein, Technik, Chemie, Aggregatzustände)</p>
+
+<div class="legend">
+  <span class="alkali">Alkalimetalle</span>
+  <span class="alkaline">Erdalkalimetalle</span>
+  <span class="transition">Übergangsmetalle</span>
+  <span class="posttransition">Hauptgruppenmetalle</span>
+  <span class="metalloid">Halbmetalle</span>
+  <span class="nonmetal">Nichtmetalle</span>
+  <span class="halogen">Halogene</span>
+  <span class="noblegas">Edelgase</span>
+  <span class="lanthanide">Lanthanoide</span>
+  <span class="actinide">Actinoide</span>
+</div>
+
+<div id="ptable" class="ptable"></div>
+
+<footer class="copyright">
+  <span class="sym">©</span> Tom BLEYER · 05/2026 · Alle Rechte vorbehalten
+</footer>
+
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal">
+    <button class="close-btn" onclick="closeModal()">×</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script>
+// =============================================================
+//  ELEMENT DATA (118 Elemente)
+// =============================================================
+const elements = {
+1:{sym:"H",pos:[1,1],cat:"nonmetal",de:"Wasserstoff",fr:"Hydrogène",en:"Hydrogen",la:"Hydrogenium",z:1,p:1,n:0,e:1,mass:1.008,
+  mp:-259.16,bp:-252.87,state:"gasförmig",
+  tech:["Elektrotechnik: Brennstoffzellen für Elektrofahrzeuge & stationäre Stromversorgung","Kühlmittel in Großgeneratoren","Energieträger (Power-to-Gas)","Reduktionsmittel in der Halbleiterfertigung","Schweißgas (atomares Wasserstoffschweißen)"],
+  chem:["H₂O (Wasser)","HCl (Salzsäure)","NH₃ (Ammoniak)","CH₄ (Methan)","H₂SO₄ (Schwefelsäure)"]},
+2:{sym:"He",pos:[18,1],cat:"noblegas",de:"Helium",fr:"Hélium",en:"Helium",la:"Helium",z:2,p:2,n:2,e:2,mass:4.0026,
+  mp:-272.2,bp:-268.93,state:"gasförmig",
+  tech:["Elektrotechnik: Kühlung supraleitender Magnete (MRT, Teilchenbeschleuniger)","Schutzgas beim Lichtbogenschweißen","Lecksuche in Vakuumanlagen","Trägergas in der Gaschromatografie"],
+  chem:["Keine stabilen Verbindungen (Edelgas)","HeH⁺ (nur unter extremen Bedingungen)"]},
+3:{sym:"Li",pos:[1,2],cat:"alkali",de:"Lithium",fr:"Lithium",en:"Lithium",la:"Lithium",z:3,p:3,n:4,e:3,mass:6.94,
+  mp:180.5,bp:1342,state:"fest",
+  tech:["Elektrotechnik: Lithium-Ionen-Akkus (Smartphones, E-Autos, Powerbanks)","Lithium-Polymer-Akkus","Schmiermittel (Lithiumseifen)","Glas- und Keramikherstellung"],
+  chem:["LiOH (Lithiumhydroxid)","Li₂CO₃ (Lithiumcarbonat)","LiCl (Lithiumchlorid)","LiF (Lithiumfluorid)"]},
+4:{sym:"Be",pos:[2,2],cat:"alkaline",de:"Beryllium",fr:"Béryllium",en:"Beryllium",la:"Beryllium",z:4,p:4,n:5,e:4,mass:9.0122,
+  mp:1287,bp:2469,state:"fest",
+  tech:["Elektrotechnik: Berylliumkupfer in Federkontakten und Steckverbindern (nicht funkend)","Röntgenfenster","Strukturteile in Luft- & Raumfahrt","Reflektor in Kernreaktoren"],
+  chem:["BeO (Berylliumoxid)","BeF₂ (Berylliumfluorid)","Be(OH)₂"]},
+5:{sym:"B",pos:[13,2],cat:"metalloid",de:"Bor",fr:"Bore",en:"Boron",la:"Borium",z:5,p:5,n:6,e:5,mass:10.81,
+  mp:2076,bp:3927,state:"fest",
+  tech:["Elektrotechnik: Dotierung von Silizium (p-Halbleiter)","Bornitrid als Isolator in Hochleistungselektronik","Borsilikatglas (Laborgeräte)","Verstärkung in Verbundwerkstoffen"],
+  chem:["H₃BO₃ (Borsäure)","Na₂B₄O₇ (Borax)","BN (Bornitrid)","B₂O₃"]},
+6:{sym:"C",pos:[14,2],cat:"nonmetal",de:"Kohlenstoff",fr:"Carbone",en:"Carbon",la:"Carbonium",z:6,p:6,n:6,e:6,mass:12.011,
+  mp:3550,bp:4827,state:"fest",
+  tech:["Elektrotechnik: Graphitelektroden, Kohlebürsten in Motoren","Carbon Nanotubes & Graphen für Halbleiter","Aktivkohle-Filter","Diamantbeschichtung für Werkzeuge","CFK-Verbundwerkstoffe"],
+  chem:["CO₂ (Kohlendioxid)","CH₄ (Methan)","CaCO₃ (Calciumcarbonat)","C₆H₁₂O₆ (Glucose)"]},
+7:{sym:"N",pos:[15,2],cat:"nonmetal",de:"Stickstoff",fr:"Azote",en:"Nitrogen",la:"Nitrogenium",z:7,p:7,n:7,e:7,mass:14.007,
+  mp:-210,bp:-195.79,state:"gasförmig",
+  tech:["Elektrotechnik: Schutzgas in Lötanlagen (SMD-Reflow)","Kühlmittel (flüssig) für Sensoren","Inertgas in Halbleiterfertigung","Reifenfüllung","Lebensmittelverpackung"],
+  chem:["NH₃ (Ammoniak)","HNO₃ (Salpetersäure)","NO₂ (Stickstoffdioxid)","N₂O (Lachgas)"]},
+8:{sym:"O",pos:[16,2],cat:"nonmetal",de:"Sauerstoff",fr:"Oxygène",en:"Oxygen",la:"Oxygenium",z:8,p:8,n:8,e:8,mass:15.999,
+  mp:-218.79,bp:-182.95,state:"gasförmig",
+  tech:["Elektrotechnik: Oxidation in Halbleiterfertigung (SiO₂-Schichten)","Brenngas beim Schweißen/Schneiden","Stahlerzeugung","Medizinische Beatmung"],
+  chem:["H₂O (Wasser)","CO₂","Fe₂O₃ (Rost)","SO₃","O₃ (Ozon)"]},
+9:{sym:"F",pos:[17,2],cat:"halogen",de:"Fluor",fr:"Fluor",en:"Fluorine",la:"Fluorum",z:9,p:9,n:10,e:9,mass:18.998,
+  mp:-219.67,bp:-188.11,state:"gasförmig",
+  tech:["Elektrotechnik: SF₆ als Isoliergas in Hochspannungsschaltanlagen","Ätzgase in Halbleiterfertigung (z.B. CF₄)","PTFE (Teflon) als Isolator","Lithiumbatterien"],
+  chem:["HF (Flusssäure)","NaF","CaF₂ (Flussspat)","SF₆","Teflon (PTFE)"]},
+10:{sym:"Ne",pos:[18,2],cat:"noblegas",de:"Neon",fr:"Néon",en:"Neon",la:"Neon",z:10,p:10,n:10,e:10,mass:20.180,
+  mp:-248.59,bp:-246.05,state:"gasförmig",
+  tech:["Elektrotechnik: Neonröhren (Leuchtreklamen, Anzeigen)","Glimmlampen","Hochspannungsanzeiger","Helium-Neon-Laser"],
+  chem:["Keine stabilen Verbindungen (Edelgas)"]},
+11:{sym:"Na",pos:[1,3],cat:"alkali",de:"Natrium",fr:"Sodium",en:"Sodium",la:"Natrium",z:11,p:11,n:12,e:11,mass:22.990,
+  mp:97.79,bp:883,state:"fest",
+  tech:["Elektrotechnik: Natriumdampflampen (Straßenbeleuchtung)","Natrium-Schwefel-Akkus (stationäre Speicher)","Kühlmittel in schnellen Brutreaktoren"],
+  chem:["NaCl (Kochsalz)","NaOH (Natronlauge)","Na₂CO₃ (Soda)","NaHCO₃ (Natron)"]},
+12:{sym:"Mg",pos:[2,3],cat:"alkaline",de:"Magnesium",fr:"Magnésium",en:"Magnesium",la:"Magnesium",z:12,p:12,n:12,e:12,mass:24.305,
+  mp:650,bp:1090,state:"fest",
+  tech:["Elektrotechnik: Gehäuse für Laptops & Smartphones (leicht, abschirmend)","Anode in Galvanik-Zellen","Leichtbau in Fahrzeugen","Pyrotechnik"],
+  chem:["MgO (Magnesia)","MgCl₂","Mg(OH)₂","MgSO₄ (Bittersalz)"]},
+13:{sym:"Al",pos:[13,3],cat:"posttransition",de:"Aluminium",fr:"Aluminium",en:"Aluminium",la:"Aluminium",z:13,p:13,n:14,e:13,mass:26.982,
+  mp:660.32,bp:2470,state:"fest",
+  tech:["Elektrotechnik: Hochspannungs-Freileitungen (leicht, leitfähig)","Kondensatoren (Elektrolytkondensatoren)","Kühlkörper","Leiterplatten-Substrate","Karosserie & Verpackungen"],
+  chem:["Al₂O₃ (Korund)","AlCl₃","Al(OH)₃","KAl(SO₄)₂ (Alaun)"]},
+14:{sym:"Si",pos:[14,3],cat:"metalloid",de:"Silicium",fr:"Silicium",en:"Silicon",la:"Silicium",z:14,p:14,n:14,e:14,mass:28.085,
+  mp:1414,bp:3265,state:"fest",
+  tech:["Elektrotechnik: BASIS aller Halbleiter & Mikrochips (CPUs, Speicher)","Solarzellen (Photovoltaik)","MOSFETs, Dioden, Transistoren","Silikon-Dichtmasse","Glas- und Keramikherstellung"],
+  chem:["SiO₂ (Quarz)","SiC (Siliciumcarbid)","Si₃N₄","H₂SiO₃","Silikate"]},
+15:{sym:"P",pos:[15,3],cat:"nonmetal",de:"Phosphor",fr:"Phosphore",en:"Phosphorus",la:"Phosphorus",z:15,p:15,n:16,e:15,mass:30.974,
+  mp:44.15,bp:280.5,state:"fest",
+  tech:["Elektrotechnik: Dotierung von Silizium (n-Halbleiter)","LED-Leuchtstoffe","Streichhölzer","Düngemittel","Brandhemmer in Kunststoffen"],
+  chem:["H₃PO₄ (Phosphorsäure)","P₂O₅","Ca₃(PO₄)₂","PCl₃"]},
+16:{sym:"S",pos:[16,3],cat:"nonmetal",de:"Schwefel",fr:"Soufre",en:"Sulfur",la:"Sulfur",z:16,p:16,n:16,e:16,mass:32.06,
+  mp:115.21,bp:444.6,state:"fest",
+  tech:["Elektrotechnik: Lithium-Schwefel-Batterien (Hochenergie)","Vulkanisation von Gummi (Kabelisolation)","Schwefelsäure-Akkus (Bleiakku-Elektrolyt)"],
+  chem:["H₂SO₄ (Schwefelsäure)","SO₂","H₂S","FeS₂ (Pyrit)","CaSO₄ (Gips)"]},
+17:{sym:"Cl",pos:[17,3],cat:"halogen",de:"Chlor",fr:"Chlore",en:"Chlorine",la:"Chlorum",z:17,p:17,n:18,e:17,mass:35.45,
+  mp:-101.5,bp:-34.04,state:"gasförmig",
+  tech:["Elektrotechnik: PVC-Kabelisolierung","Chloralkali-Elektrolyse","Wasserdesinfektion","Bleichmittel"],
+  chem:["NaCl","HCl (Salzsäure)","PVC","KCl","CaCl₂"]},
+18:{sym:"Ar",pos:[18,3],cat:"noblegas",de:"Argon",fr:"Argon",en:"Argon",la:"Argon",z:18,p:18,n:22,e:18,mass:39.948,
+  mp:-189.34,bp:-185.85,state:"gasförmig",
+  tech:["Elektrotechnik: Schutzgas in Glühbirnen & Leuchtstoffröhren","Schutzgas beim WIG-Schweißen","Plasmagas in Halbleiterfertigung","Wärmedämmung in Isolierglas"],
+  chem:["Keine stabilen Verbindungen (Edelgas)","HArF (extreme Bedingungen)"]},
+19:{sym:"K",pos:[1,4],cat:"alkali",de:"Kalium",fr:"Potassium",en:"Potassium",la:"Kalium",z:19,p:19,n:20,e:19,mass:39.098,
+  mp:63.5,bp:759,state:"fest",
+  tech:["Elektrotechnik: Kalium-Ionen-Batterien (Forschung)","Photoelektrische Zellen","Düngemittel","Glasherstellung"],
+  chem:["KCl","KOH (Kalilauge)","K₂CO₃ (Pottasche)","KNO₃ (Salpeter)"]},
+20:{sym:"Ca",pos:[2,4],cat:"alkaline",de:"Calcium",fr:"Calcium",en:"Calcium",la:"Calcium",z:20,p:20,n:20,e:20,mass:40.078,
+  mp:842,bp:1484,state:"fest",
+  tech:["Elektrotechnik: Reduktionsmittel bei Metallgewinnung","Elektroden in einigen Batterien","Bauwesen (Zement, Mörtel)","Stahlentschwefelung"],
+  chem:["CaCO₃ (Kalk)","CaO (Branntkalk)","Ca(OH)₂","CaSO₄ (Gips)","CaCl₂"]},
+21:{sym:"Sc",pos:[3,4],cat:"transition",de:"Scandium",fr:"Scandium",en:"Scandium",la:"Scandium",z:21,p:21,n:24,e:21,mass:44.956,
+  mp:1541,bp:2836,state:"fest",
+  tech:["Elektrotechnik: Scandium-Aluminium-Legierung in Antennen & Hochspannungstechnik","Quecksilberdampflampen (Sportstadien)","Luft- & Raumfahrt-Legierungen"],
+  chem:["Sc₂O₃","ScCl₃","ScF₃"]},
+22:{sym:"Ti",pos:[4,4],cat:"transition",de:"Titan",fr:"Titane",en:"Titanium",la:"Titanium",z:22,p:22,n:26,e:22,mass:47.867,
+  mp:1668,bp:3287,state:"fest",
+  tech:["Elektrotechnik: Kondensatoren (TiO₂-Dielektrika)","Anoden in MMO-Elektroden","Implantate, Flugzeugbau","Weißpigment in Lacken"],
+  chem:["TiO₂ (Titandioxid)","TiCl₄","TiN (Titannitrid)"]},
+23:{sym:"V",pos:[5,4],cat:"transition",de:"Vanadium",fr:"Vanadium",en:"Vanadium",la:"Vanadium",z:23,p:23,n:28,e:23,mass:50.942,
+  mp:1910,bp:3407,state:"fest",
+  tech:["Elektrotechnik: Vanadium-Redox-Flow-Batterien (Großspeicher)","Hochfeste Stahllegierungen","Katalysator (Schwefelsäure)","Supraleitung (V₃Ga)"],
+  chem:["V₂O₅","VO₂","VCl₃"]},
+24:{sym:"Cr",pos:[6,4],cat:"transition",de:"Chrom",fr:"Chrome",en:"Chromium",la:"Chromium",z:24,p:24,n:28,e:24,mass:51.996,
+  mp:1907,bp:2671,state:"fest",
+  tech:["Elektrotechnik: Verchromung von Kontakten (Korrosionsschutz)","Heizleiter (NiCr-Drähte in Toaster, Föhn, Heizgeräten)","Edelstahl-Legierungen","Lederherstellung"],
+  chem:["Cr₂O₃","K₂Cr₂O₇","CrO₃","FeCr₂O₄"]},
+25:{sym:"Mn",pos:[7,4],cat:"transition",de:"Mangan",fr:"Manganèse",en:"Manganese",la:"Manganum",z:25,p:25,n:30,e:25,mass:54.938,
+  mp:1246,bp:2061,state:"fest",
+  tech:["Elektrotechnik: Alkali-Mangan-Batterien","Lithium-Mangan-Akkus","Stahllegierungen (Manganstahl)","Aluminiumlegierungen"],
+  chem:["MnO₂ (Braunstein)","KMnO₄ (Kaliumpermanganat)","MnCl₂","MnSO₄"]},
+26:{sym:"Fe",pos:[8,4],cat:"transition",de:"Eisen",fr:"Fer",en:"Iron",la:"Ferrum",z:26,p:26,n:30,e:26,mass:55.845,
+  mp:1538,bp:2862,state:"fest",
+  tech:["Elektrotechnik: Eisenkerne in Transformatoren & Drosseln","Elektromagnete, Relais, Motoren","Ferrite in HF-Bauteilen & Antennen","Stahl im Bauwesen"],
+  chem:["Fe₂O₃ (Hämatit)","Fe₃O₄ (Magnetit)","FeS₂ (Pyrit)","FeCl₃","FeSO₄"]},
+27:{sym:"Co",pos:[9,4],cat:"transition",de:"Kobalt",fr:"Cobalt",en:"Cobalt",la:"Cobaltum",z:27,p:27,n:32,e:27,mass:58.933,
+  mp:1495,bp:2927,state:"fest",
+  tech:["Elektrotechnik: Lithium-Cobalt-Oxid in Lithium-Ionen-Akkus","SmCo-Permanentmagnete (Hochtemperatur)","Hartmetalle (WC-Co)","Blaupigmente"],
+  chem:["CoO","Co₃O₄","CoCl₂","LiCoO₂"]},
+28:{sym:"Ni",pos:[10,4],cat:"transition",de:"Nickel",fr:"Nickel",en:"Nickel",la:"Niccolum",z:28,p:28,n:31,e:28,mass:58.693,
+  mp:1455,bp:2913,state:"fest",
+  tech:["Elektrotechnik: NiMH- & NiCd-Akkus","Edelstahl, Münzen","Vernickelung von Kontakten","Heizdrähte (NiCr)"],
+  chem:["NiO","NiCl₂","NiSO₄","Ni(OH)₂"]},
+29:{sym:"Cu",pos:[11,4],cat:"transition",de:"Kupfer",fr:"Cuivre",en:"Copper",la:"Cuprum",z:29,p:29,n:35,e:29,mass:63.546,
+  mp:1084.62,bp:2562,state:"fest",
+  tech:["Elektrotechnik: Standard-Leitermaterial (Kabel, Wicklungen, Leiterbahnen)","Transformatorenwicklungen","Wärmetauscher","Dachbedeckung"],
+  chem:["CuSO₄","Cu₂O","CuO","CuCl₂"]},
+30:{sym:"Zn",pos:[12,4],cat:"transition",de:"Zink",fr:"Zinc",en:"Zinc",la:"Zincum",z:30,p:30,n:35,e:30,mass:65.38,
+  mp:419.53,bp:907,state:"fest",
+  tech:["Elektrotechnik: Anode in Zink-Kohle- & Alkalibatterien","Verzinkung von Stahl (Korrosionsschutz)","Messing-Legierungen","Druckguss"],
+  chem:["ZnO","ZnS (Zinkblende)","ZnCl₂","ZnSO₄"]},
+31:{sym:"Ga",pos:[13,4],cat:"posttransition",de:"Gallium",fr:"Gallium",en:"Gallium",la:"Gallium",z:31,p:31,n:39,e:31,mass:69.723,
+  mp:29.76,bp:2204,state:"fest",
+  tech:["Elektrotechnik: Galliumarsenid (GaAs) in Hochfrequenz-ICs (Mobilfunk, Radar)","Galliumnitrid (GaN) in LEDs, Ladegeräten, 5G","Solarzellen","Halbleiterlaser"],
+  chem:["GaAs","GaN","Ga₂O₃","GaCl₃"]},
+32:{sym:"Ge",pos:[14,4],cat:"metalloid",de:"Germanium",fr:"Germanium",en:"Germanium",la:"Germanium",z:32,p:32,n:41,e:32,mass:72.63,
+  mp:938.25,bp:2833,state:"fest",
+  tech:["Elektrotechnik: Erste Halbleiterdioden & Transistoren","SiGe-Heterostrukturen in Hochfrequenz-ICs","Infrarot-Optik","Glasfasern (Brechungsindex)"],
+  chem:["GeO₂","GeCl₄","GeH₄"]},
+33:{sym:"As",pos:[15,4],cat:"metalloid",de:"Arsen",fr:"Arsenic",en:"Arsenic",la:"Arsenicum",z:33,p:33,n:42,e:33,mass:74.922,
+  mp:817,bp:614,state:"fest",
+  tech:["Elektrotechnik: Galliumarsenid (GaAs) in Hochleistungs-Halbleitern","Dotierung von Silizium","Bleilegierungen für Akkugitter"],
+  chem:["As₂O₃","AsH₃ (Arsin)","GaAs","Na₃AsO₄"]},
+34:{sym:"Se",pos:[16,4],cat:"nonmetal",de:"Selen",fr:"Sélénium",en:"Selenium",la:"Selenium",z:34,p:34,n:45,e:34,mass:78.971,
+  mp:221,bp:685,state:"fest",
+  tech:["Elektrotechnik: Photozellen & Belichtungsmesser","Selen-Gleichrichter (historisch)","CIGS-Solarzellen","Xerografie (Trommeln in Kopierern)"],
+  chem:["SeO₂","H₂SeO₄","CdSe","Na₂SeO₃"]},
+35:{sym:"Br",pos:[17,4],cat:"halogen",de:"Brom",fr:"Brome",en:"Bromine",la:"Bromum",z:35,p:35,n:45,e:35,mass:79.904,
+  mp:-7.2,bp:58.8,state:"flüssig",
+  tech:["Elektrotechnik: Bromhaltige Flammschutzmittel in Leiterplatten & Gehäusen","Zink-Brom-Flussbatterien","Bohrflüssigkeiten"],
+  chem:["NaBr","KBr","HBr","AgBr (Filmemulsion)"]},
+36:{sym:"Kr",pos:[18,4],cat:"noblegas",de:"Krypton",fr:"Krypton",en:"Krypton",la:"Krypton",z:36,p:36,n:48,e:36,mass:83.798,
+  mp:-157.36,bp:-153.22,state:"gasförmig",
+  tech:["Elektrotechnik: Füllgas in Energiesparlampen, Glühbirnen & Blitzlampen","Kryptonlaser","Hochleistungs-Isolierglas"],
+  chem:["KrF₂ (instabil)","Sonst keine stabilen Verbindungen"]},
+37:{sym:"Rb",pos:[1,5],cat:"alkali",de:"Rubidium",fr:"Rubidium",en:"Rubidium",la:"Rubidium",z:37,p:37,n:48,e:37,mass:85.468,
+  mp:39.31,bp:688,state:"fest",
+  tech:["Elektrotechnik: Atomuhren (Frequenznormale in GPS, Mobilfunk)","Photozellen","Spezialgläser"],
+  chem:["RbCl","Rb₂O","RbOH"]},
+38:{sym:"Sr",pos:[2,5],cat:"alkaline",de:"Strontium",fr:"Strontium",en:"Strontium",la:"Strontium",z:38,p:38,n:50,e:38,mass:87.62,
+  mp:777,bp:1382,state:"fest",
+  tech:["Elektrotechnik: Strontiumferrite in Lautsprecher-Magneten","Bildröhren-Glas (historisch)","Pyrotechnik (rote Flamme)","Keramikkondensatoren"],
+  chem:["SrCO₃","SrO","SrSO₄ (Coelestin)","SrCl₂"]},
+39:{sym:"Y",pos:[3,5],cat:"transition",de:"Yttrium",fr:"Yttrium",en:"Yttrium",la:"Yttrium",z:39,p:39,n:50,e:39,mass:88.906,
+  mp:1526,bp:3336,state:"fest",
+  tech:["Elektrotechnik: YBCO-Hochtemperatur-Supraleiter","Phosphore in LED & Bildschirmen (Y₂O₃:Eu)","YAG-Laserkristalle","Mikrowellenfilter"],
+  chem:["Y₂O₃","YBa₂Cu₃O₇","YCl₃"]},
+40:{sym:"Zr",pos:[4,5],cat:"transition",de:"Zirconium",fr:"Zirconium",en:"Zirconium",la:"Zirconium",z:40,p:40,n:51,e:40,mass:91.224,
+  mp:1855,bp:4377,state:"fest",
+  tech:["Elektrotechnik: Hüllrohre für Brennstäbe in Kernreaktoren","Piezoelektrische Keramik (PZT) für Sensoren & Aktoren","Keramische Kondensatoren","Zahnersatz"],
+  chem:["ZrO₂ (Zirkonia)","ZrSiO₄ (Zirkon)","ZrCl₄"]},
+41:{sym:"Nb",pos:[5,5],cat:"transition",de:"Niob",fr:"Niobium",en:"Niobium",la:"Niobium",z:41,p:41,n:52,e:41,mass:92.906,
+  mp:2477,bp:4744,state:"fest",
+  tech:["Elektrotechnik: Niob-Zinn (Nb₃Sn) Supraleiter in MRT- & LHC-Magneten","Hochleistungs-Tantalkondensator-Ersatz","Stahllegierungen für Pipelines"],
+  chem:["Nb₂O₅","NbCl₅","Nb₃Sn"]},
+42:{sym:"Mo",pos:[6,5],cat:"transition",de:"Molybdän",fr:"Molybdène",en:"Molybdenum",la:"Molybdaenum",z:42,p:42,n:54,e:42,mass:95.95,
+  mp:2623,bp:4639,state:"fest",
+  tech:["Elektrotechnik: Elektroden in Glasschmelzen & Glühlampen","MoSi₂-Heizelemente in Hochtemperaturöfen","Stahllegierungen","Schmiermittel (MoS₂)"],
+  chem:["MoO₃","MoS₂","Na₂MoO₄"]},
+43:{sym:"Tc",pos:[7,5],cat:"transition",de:"Technetium",fr:"Technétium",en:"Technetium",la:"Technetium",z:43,p:43,n:55,e:43,mass:98,
+  mp:2157,bp:4265,state:"fest",
+  tech:["Elektrotechnik: kaum technisch (radioaktiv)","Korrosionsschutzbeschichtungen (Forschung)","Medizin: Tc-99m als Tracer in Szintigrafie"],
+  chem:["TcO₄⁻ (Pertechnetat)","Tc₂O₇"]},
+44:{sym:"Ru",pos:[8,5],cat:"transition",de:"Ruthenium",fr:"Ruthénium",en:"Ruthenium",la:"Ruthenium",z:44,p:44,n:57,e:44,mass:101.07,
+  mp:2334,bp:4150,state:"fest",
+  tech:["Elektrotechnik: Beschichtung von Festplatten (höhere Datendichte)","Elektroden in Chloralkali-Elektrolyse","Dickfilm-Widerstände","Schmuck-Legierungen"],
+  chem:["RuO₂","RuO₄","RuCl₃"]},
+45:{sym:"Rh",pos:[9,5],cat:"transition",de:"Rhodium",fr:"Rhodium",en:"Rhodium",la:"Rhodium",z:45,p:45,n:58,e:45,mass:102.91,
+  mp:1964,bp:3695,state:"fest",
+  tech:["Elektrotechnik: Beschichtung von Steckkontakten (sehr verschleißfest)","Thermoelemente Pt/Rh","Katalysator in Fahrzeug-Katalysatoren","Schmuck"],
+  chem:["Rh₂O₃","RhCl₃"]},
+46:{sym:"Pd",pos:[10,5],cat:"transition",de:"Palladium",fr:"Palladium",en:"Palladium",la:"Palladium",z:46,p:46,n:60,e:46,mass:106.42,
+  mp:1554.9,bp:2963,state:"fest",
+  tech:["Elektrotechnik: Mehrschicht-Keramikkondensatoren (MLCC)","Steckverbinderbeschichtung","Wasserstoffspeicher","Kfz-Katalysatoren","Schmuck"],
+  chem:["PdO","PdCl₂"]},
+47:{sym:"Ag",pos:[11,5],cat:"transition",de:"Silber",fr:"Argent",en:"Silver",la:"Argentum",z:47,p:47,n:61,e:47,mass:107.87,
+  mp:961.78,bp:2162,state:"fest",
+  tech:["Elektrotechnik: Beste elektrische Leitfähigkeit – Hochfrequenz-Kontakte, Relais","Lötlegierungen (Hartlot)","Photovoltaik (Kontaktfinger)","Spiegel, Schmuck, Münzen"],
+  chem:["AgNO₃","AgCl","Ag₂O","Ag₂S"]},
+48:{sym:"Cd",pos:[12,5],cat:"transition",de:"Cadmium",fr:"Cadmium",en:"Cadmium",la:"Cadmium",z:48,p:48,n:64,e:48,mass:112.41,
+  mp:321.07,bp:767,state:"fest",
+  tech:["Elektrotechnik: NiCd-Akkus (Memory-Effekt, RoHS-beschränkt)","CdTe-Solarzellen","Pigmente (Cadmiumgelb)","Korrosionsschutz"],
+  chem:["CdO","CdS","CdSe","CdTe"]},
+49:{sym:"In",pos:[13,5],cat:"posttransition",de:"Indium",fr:"Indium",en:"Indium",la:"Indium",z:49,p:49,n:66,e:49,mass:114.82,
+  mp:156.6,bp:2072,state:"fest",
+  tech:["Elektrotechnik: ITO (Indium-Zinn-Oxid) für transparente Elektroden in Touchscreens, OLEDs, Solarzellen","Lötlote (niedrigschmelzend)","CIGS-Solarzellen","Halbleiter (InP, InGaAs)"],
+  chem:["In₂O₃","InCl₃","InP","InGaAs"]},
+50:{sym:"Sn",pos:[14,5],cat:"posttransition",de:"Zinn",fr:"Étain",en:"Tin",la:"Stannum",z:50,p:50,n:69,e:50,mass:118.71,
+  mp:231.93,bp:2602,state:"fest",
+  tech:["Elektrotechnik: Weichlot (Sn-Cu, Sn-Ag-Cu für SMD-Bestückung)","Verzinnung von Kupferdrähten","Bronze","Konservendosen","Float-Glas-Bad"],
+  chem:["SnO₂","SnCl₂","SnS"]},
+51:{sym:"Sb",pos:[15,5],cat:"metalloid",de:"Antimon",fr:"Antimoine",en:"Antimony",la:"Stibium",z:51,p:51,n:71,e:51,mass:121.76,
+  mp:630.63,bp:1635,state:"fest",
+  tech:["Elektrotechnik: Halbleiterlegierungen (InSb-Infrarotsensoren)","Bleibatterien (Härtung der Gitter)","Flammschutzmittel (Sb₂O₃) in Kabeln","Lagermetall"],
+  chem:["Sb₂O₃","Sb₂S₃","SbCl₃","InSb"]},
+52:{sym:"Te",pos:[16,5],cat:"metalloid",de:"Tellur",fr:"Tellure",en:"Tellurium",la:"Tellurium",z:52,p:52,n:76,e:52,mass:127.60,
+  mp:449.51,bp:988,state:"fest",
+  tech:["Elektrotechnik: CdTe-Solarzellen (Dünnschicht-PV)","Phasenwechselspeicher (DVD-RW, Blu-ray)","Thermoelektrische Generatoren (Bi₂Te₃)","Vulkanisation"],
+  chem:["TeO₂","CdTe","Bi₂Te₃","H₂Te"]},
+53:{sym:"I",pos:[17,5],cat:"halogen",de:"Iod",fr:"Iode",en:"Iodine",la:"Iodum",z:53,p:53,n:74,e:53,mass:126.90,
+  mp:113.7,bp:184.3,state:"fest",
+  tech:["Elektrotechnik: Halogen-Glühlampen (Iod-Wolfram-Kreislauf)","Polarisationsfilter (LCD-Bildschirme)","Desinfektion","Röntgenkontrastmittel"],
+  chem:["KI","NaI","HI","I₂","AgI"]},
+54:{sym:"Xe",pos:[18,5],cat:"noblegas",de:"Xenon",fr:"Xénon",en:"Xenon",la:"Xenon",z:54,p:54,n:77,e:54,mass:131.29,
+  mp:-111.75,bp:-108.10,state:"gasförmig",
+  tech:["Elektrotechnik: Xenon-Hochdrucklampen (Kfz-Scheinwerfer, Beamer, IMAX)","Ionentriebwerke in Satelliten","Blitzlampen","Anästhetikum"],
+  chem:["XeF₂","XeF₄","XeO₃"]},
+55:{sym:"Cs",pos:[1,6],cat:"alkali",de:"Caesium",fr:"Césium",en:"Caesium",la:"Caesium",z:55,p:55,n:78,e:55,mass:132.91,
+  mp:28.5,bp:671,state:"fest",
+  tech:["Elektrotechnik: Cäsium-Atomuhren (Sekundendefinition, GPS)","Photokathoden in Photomultipliern","Bohrflüssigkeiten","Ionentriebwerke"],
+  chem:["CsCl","Cs₂O","CsOH"]},
+56:{sym:"Ba",pos:[2,6],cat:"alkaline",de:"Barium",fr:"Baryum",en:"Barium",la:"Barium",z:56,p:56,n:81,e:56,mass:137.33,
+  mp:727,bp:1897,state:"fest",
+  tech:["Elektrotechnik: BaTiO₃ als Dielektrikum in Keramikkondensatoren & Piezoelementen","YBCO-Supraleiter","Bildröhren-Glas (historisch)","Pyrotechnik (grün)"],
+  chem:["BaSO₄","BaCO₃","BaTiO₃","BaCl₂"]},
+57:{sym:"La",pos:[3,6],cat:"lanthanide",de:"Lanthan",fr:"Lanthane",en:"Lanthanum",la:"Lanthanum",z:57,p:57,n:82,e:57,mass:138.91,
+  mp:920,bp:3464,state:"fest",
+  tech:["Elektrotechnik: NiMH-Akkus (Anodenmaterial)","Hochbrechende Spezialgläser (Kameralinsen)","Petroleum-Cracking-Katalysator","Beleuchtungstechnik"],
+  chem:["La₂O₃","LaCl₃","LaB₆"]},
+58:{sym:"Ce",pos:[4,6],cat:"lanthanide",de:"Cer",fr:"Cérium",en:"Cerium",la:"Cerium",z:58,p:58,n:82,e:58,mass:140.12,
+  mp:799,bp:3443,state:"fest",
+  tech:["Elektrotechnik: Polierpulver für Bildschirmglas & Halbleiter-Wafer","Leuchtstoffe in LEDs (YAG:Ce)","Auto-Katalysatoren","Feuersteine (Mischmetall)"],
+  chem:["CeO₂","Ce₂O₃","CeCl₃"]},
+59:{sym:"Pr",pos:[5,6],cat:"lanthanide",de:"Praseodym",fr:"Praséodyme",en:"Praseodymium",la:"Praseodymium",z:59,p:59,n:82,e:59,mass:140.91,
+  mp:931,bp:3520,state:"fest",
+  tech:["Elektrotechnik: Permanentmagnete (Pr-Nd-Fe-B) in E-Motoren & Festplatten","Glasfärbung (gelbgrün)","Faseroptik-Verstärker"],
+  chem:["Pr₂O₃","PrCl₃"]},
+60:{sym:"Nd",pos:[6,6],cat:"lanthanide",de:"Neodym",fr:"Néodyme",en:"Neodymium",la:"Neodymium",z:60,p:60,n:84,e:60,mass:144.24,
+  mp:1016,bp:3074,state:"fest",
+  tech:["Elektrotechnik: Stärkste Permanentmagnete (Nd₂Fe₁₄B) in Festplatten, Kopfhörern, Windturbinen & E-Auto-Motoren","Nd:YAG-Laser","Glasfärbung"],
+  chem:["Nd₂O₃","NdCl₃","Nd₂Fe₁₄B"]},
+61:{sym:"Pm",pos:[7,6],cat:"lanthanide",de:"Promethium",fr:"Prométhium",en:"Promethium",la:"Promethium",z:61,p:61,n:84,e:61,mass:145,
+  mp:1042,bp:3000,state:"fest",
+  tech:["Elektrotechnik: Atombatterien (β-Strahler, Forschung)","Leuchtfarben (historisch)","Dickenmessgeräte"],
+  chem:["Pm₂O₃","PmCl₃"]},
+62:{sym:"Sm",pos:[8,6],cat:"lanthanide",de:"Samarium",fr:"Samarium",en:"Samarium",la:"Samarium",z:62,p:62,n:88,e:62,mass:150.36,
+  mp:1072,bp:1794,state:"fest",
+  tech:["Elektrotechnik: Samarium-Cobalt-Magnete (SmCo₅) – hochtemperaturstabil in Servomotoren & Luftfahrt","Nuklearreaktor-Steuerstäbe","IR-absorbierende Gläser"],
+  chem:["Sm₂O₃","SmCl₃","SmCo₅"]},
+63:{sym:"Eu",pos:[9,6],cat:"lanthanide",de:"Europium",fr:"Europium",en:"Europium",la:"Europium",z:63,p:63,n:89,e:63,mass:151.96,
+  mp:822,bp:1529,state:"fest",
+  tech:["Elektrotechnik: Rotes Phosphor in Bildschirmen & Energiesparlampen (Y₂O₂S:Eu)","Sicherheitsmerkmale auf Euro-Banknoten (UV-Fluoreszenz)","LED-Phosphore"],
+  chem:["Eu₂O₃","EuCl₃"]},
+64:{sym:"Gd",pos:[10,6],cat:"lanthanide",de:"Gadolinium",fr:"Gadolinium",en:"Gadolinium",la:"Gadolinium",z:64,p:64,n:93,e:64,mass:157.25,
+  mp:1313,bp:3273,state:"fest",
+  tech:["Elektrotechnik: MRT-Kontrastmittel","Nuklearreaktor-Steuerstäbe (hoher Neutroneneinfang)","Magnetokalorische Materialien","Speicher-Phosphore"],
+  chem:["Gd₂O₃","GdCl₃"]},
+65:{sym:"Tb",pos:[11,6],cat:"lanthanide",de:"Terbium",fr:"Terbium",en:"Terbium",la:"Terbium",z:65,p:65,n:94,e:65,mass:158.93,
+  mp:1359,bp:3230,state:"fest",
+  tech:["Elektrotechnik: Grüner Phosphor in Leuchtstoffröhren & LEDs","Magnetostriktive Materialien (Terfenol-D) für Sonarsysteme","Festkörper-Geräte"],
+  chem:["Tb₂O₃","TbCl₃","Tb₄O₇"]},
+66:{sym:"Dy",pos:[12,6],cat:"lanthanide",de:"Dysprosium",fr:"Dysprosium",en:"Dysprosium",la:"Dysprosium",z:66,p:66,n:97,e:66,mass:162.50,
+  mp:1412,bp:2567,state:"fest",
+  tech:["Elektrotechnik: Zusatz in Nd-Permanentmagneten für Hochtemperaturbeständigkeit (E-Auto-Motoren, Windkraft)","Datenspeicher","Reaktorsteuerung"],
+  chem:["Dy₂O₃","DyCl₃"]},
+67:{sym:"Ho",pos:[13,6],cat:"lanthanide",de:"Holmium",fr:"Holmium",en:"Holmium",la:"Holmium",z:67,p:67,n:98,e:67,mass:164.93,
+  mp:1472,bp:2700,state:"fest",
+  tech:["Elektrotechnik: Polschuhe in Hochfeld-Magneten","Ho:YAG-Laser für Medizin","Atomreaktor-Steuerung"],
+  chem:["Ho₂O₃","HoCl₃"]},
+68:{sym:"Er",pos:[14,6],cat:"lanthanide",de:"Erbium",fr:"Erbium",en:"Erbium",la:"Erbium",z:68,p:68,n:99,e:68,mass:167.26,
+  mp:1529,bp:2868,state:"fest",
+  tech:["Elektrotechnik: Erbium-dotierte Glasfaserverstärker (EDFA) in der gesamten Glasfaser-Telekommunikation","Er:YAG-Laser","Glas-Färbungen (rosa)"],
+  chem:["Er₂O₃","ErCl₃"]},
+69:{sym:"Tm",pos:[15,6],cat:"lanthanide",de:"Thulium",fr:"Thulium",en:"Thulium",la:"Thulium",z:69,p:69,n:100,e:69,mass:168.93,
+  mp:1545,bp:1950,state:"fest",
+  tech:["Elektrotechnik: Tragbare Röntgenquellen","Hochleistungs-Faserlaser","Magnetokeramische Werkstoffe"],
+  chem:["Tm₂O₃","TmCl₃"]},
+70:{sym:"Yb",pos:[16,6],cat:"lanthanide",de:"Ytterbium",fr:"Ytterbium",en:"Ytterbium",la:"Ytterbium",z:70,p:70,n:103,e:70,mass:173.05,
+  mp:824,bp:1196,state:"fest",
+  tech:["Elektrotechnik: Yb-dotierte Faserlaser (Hochleistungslaser für Materialbearbeitung)","Atomuhren der nächsten Generation","Drucksensoren"],
+  chem:["Yb₂O₃","YbCl₃"]},
+71:{sym:"Lu",pos:[17,6],cat:"lanthanide",de:"Lutetium",fr:"Lutécium",en:"Lutetium",la:"Lutetium",z:71,p:71,n:104,e:71,mass:174.97,
+  mp:1663,bp:3402,state:"fest",
+  tech:["Elektrotechnik: LSO-Detektoren in PET-Scannern","Petrolchemie-Katalysatoren","Hochbrechende Linsen"],
+  chem:["Lu₂O₃","LuCl₃"]},
+72:{sym:"Hf",pos:[4,6],cat:"transition",de:"Hafnium",fr:"Hafnium",en:"Hafnium",la:"Hafnium",z:72,p:72,n:106,e:72,mass:178.49,
+  mp:2233,bp:4603,state:"fest",
+  tech:["Elektrotechnik: HfO₂ als High-k-Dielektrikum in modernen CPUs (ab 45 nm)","Steuerstäbe in Atom-U-Booten","Plasmaschneider-Elektroden"],
+  chem:["HfO₂","HfCl₄"]},
+73:{sym:"Ta",pos:[5,6],cat:"transition",de:"Tantal",fr:"Tantale",en:"Tantalum",la:"Tantalum",z:73,p:73,n:108,e:73,mass:180.95,
+  mp:3017,bp:5458,state:"fest",
+  tech:["Elektrotechnik: Tantalkondensatoren in Smartphones, Laptops, Medizingeräten (hohe Kapazitätsdichte)","Hochtemperatur-Legierungen","Implantate"],
+  chem:["Ta₂O₅","TaC"]},
+74:{sym:"W",pos:[6,6],cat:"transition",de:"Wolfram",fr:"Tungstène",en:"Tungsten",la:"Wolframium",z:74,p:74,n:110,e:74,mass:183.84,
+  mp:3422,bp:5555,state:"fest",
+  tech:["Elektrotechnik: Glühwendel in Glühlampen & Halogenlampen","Elektroden beim WIG-Schweißen & in Röntgenröhren","Hartmetall (WC) für Werkzeuge","Kontakte"],
+  chem:["WO₃","WC (Wolframcarbid)","WS₂"]},
+75:{sym:"Re",pos:[7,6],cat:"transition",de:"Rhenium",fr:"Rhénium",en:"Rhenium",la:"Rhenium",z:75,p:75,n:111,e:75,mass:186.21,
+  mp:3186,bp:5596,state:"fest",
+  tech:["Elektrotechnik: Hochtemperatur-Thermoelemente (Pt-Re, W-Re)","Massenspektrometer-Filamente","Turbinenschaufeln"],
+  chem:["Re₂O₇","ReCl₃","ReS₂"]},
+76:{sym:"Os",pos:[8,6],cat:"transition",de:"Osmium",fr:"Osmium",en:"Osmium",la:"Osmium",z:76,p:76,n:114,e:76,mass:190.23,
+  mp:3033,bp:5012,state:"fest",
+  tech:["Elektrotechnik: Spitzen für Plattenspieler-Nadeln & Federspitzen","Elektrische Kontakte (sehr hart)","Katalysatoren"],
+  chem:["OsO₄","OsCl₃"]},
+77:{sym:"Ir",pos:[9,6],cat:"transition",de:"Iridium",fr:"Iridium",en:"Iridium",la:"Iridium",z:77,p:77,n:115,e:77,mass:192.22,
+  mp:2466,bp:4428,state:"fest",
+  tech:["Elektrotechnik: Zündkerzenelektroden (Hochleistung)","OLED-Emittermaterialien","Tiegel für Einkristallzucht (LED-Wafer)"],
+  chem:["IrO₂","IrCl₃"]},
+78:{sym:"Pt",pos:[10,6],cat:"transition",de:"Platin",fr:"Platine",en:"Platinum",la:"Platinum",z:78,p:78,n:117,e:78,mass:195.08,
+  mp:1768.3,bp:3825,state:"fest",
+  tech:["Elektrotechnik: Pt100-Widerstandsthermometer (Industriestandard)","Brennstoffzellen-Elektroden","Festplatten-Beschichtungen","Kfz-Katalysatoren","Schmuck"],
+  chem:["PtO₂","PtCl₂","PtCl₄"]},
+79:{sym:"Au",pos:[11,6],cat:"transition",de:"Gold",fr:"Or",en:"Gold",la:"Aurum",z:79,p:79,n:118,e:79,mass:196.97,
+  mp:1064.18,bp:2856,state:"fest",
+  tech:["Elektrotechnik: Bonddrähte in ICs, vergoldete Steckkontakte (USB, HDMI, Stecker)","Leiterbahnen in Hochzuverlässigkeitselektronik","IR-Reflexion in Raumfahrt","Schmuck, Münzen"],
+  chem:["AuCl₃","Au₂O₃","HAuCl₄"]},
+80:{sym:"Hg",pos:[12,6],cat:"transition",de:"Quecksilber",fr:"Mercure",en:"Mercury",la:"Hydrargyrum",z:80,p:80,n:121,e:80,mass:200.59,
+  mp:-38.83,bp:356.73,state:"flüssig",
+  tech:["Elektrotechnik: Quecksilberdampflampen, Leuchtstoffröhren, Energiesparlampen","Quecksilberschalter (heute verboten)","Thermometer (RoHS-beschränkt)"],
+  chem:["HgO","HgCl₂","HgS (Zinnober)"]},
+81:{sym:"Tl",pos:[13,6],cat:"posttransition",de:"Thallium",fr:"Thallium",en:"Thallium",la:"Thallium",z:81,p:81,n:123,e:81,mass:204.38,
+  mp:304,bp:1473,state:"fest",
+  tech:["Elektrotechnik: Infrarot-Detektoren (Tl-Verbindungen)","Hochtemperatur-Supraleiter (TBCCO)","Photozellen","Optische Linsen für IR"],
+  chem:["Tl₂O","TlCl","Tl₂SO₄"]},
+82:{sym:"Pb",pos:[14,6],cat:"posttransition",de:"Blei",fr:"Plomb",en:"Lead",la:"Plumbum",z:82,p:82,n:125,e:82,mass:207.2,
+  mp:327.46,bp:1749,state:"fest",
+  tech:["Elektrotechnik: Bleiakkumulatoren (Starterbatterien Kfz, USV)","Strahlenschirmung (Röntgen, Reaktoren)","Lote (heute meist bleifrei)","Kabelmäntel (historisch)"],
+  chem:["PbO","PbO₂","PbS","PbSO₄","Pb(NO₃)₂"]},
+83:{sym:"Bi",pos:[15,6],cat:"posttransition",de:"Bismut",fr:"Bismuth",en:"Bismuth",la:"Bisemutum",z:83,p:83,n:126,e:83,mass:208.98,
+  mp:271.4,bp:1564,state:"fest",
+  tech:["Elektrotechnik: Bi-haltige bleifreie Lote","Bi₂Te₃ in thermoelektrischen Generatoren & Peltier-Elementen","Hochtemperatur-Supraleiter (BSCCO)","Pharmazie"],
+  chem:["Bi₂O₃","BiOCl","Bi₂Te₃","Bi₂S₃"]},
+84:{sym:"Po",pos:[16,6],cat:"metalloid",de:"Polonium",fr:"Polonium",en:"Polonium",la:"Polonium",z:84,p:84,n:125,e:84,mass:209,
+  mp:254,bp:962,state:"fest",
+  tech:["Elektrotechnik: Antistatik-Bürsten (α-Strahler ionisiert Luft)","Wärmequelle in Satelliten-RTGs","Neutronenquellen"],
+  chem:["PoO₂","PoCl₂"]},
+85:{sym:"At",pos:[17,6],cat:"halogen",de:"Astat",fr:"Astate",en:"Astatine",la:"Astatum",z:85,p:85,n:125,e:85,mass:210,
+  mp:302,bp:337,state:"fest",
+  tech:["Elektrotechnik: praktisch keine Anwendung (extrem selten, radioaktiv)","Forschung: zielgerichtete Krebstherapie (²¹¹At)"],
+  chem:["HAt (instabil)","AtI"]},
+86:{sym:"Rn",pos:[18,6],cat:"noblegas",de:"Radon",fr:"Radon",en:"Radon",la:"Radon",z:86,p:86,n:136,e:86,mass:222,
+  mp:-71,bp:-61.7,state:"gasförmig",
+  tech:["Elektrotechnik: keine technische Nutzung","Strahlentherapie (historisch)","Indikator für tektonische Aktivität"],
+  chem:["RnF₂"]},
+87:{sym:"Fr",pos:[1,7],cat:"alkali",de:"Francium",fr:"Francium",en:"Francium",la:"Francium",z:87,p:87,n:136,e:87,mass:223,
+  mp:27,bp:677,state:"fest",
+  tech:["Elektrotechnik: keine (extrem selten, radioaktiv)","Nur Forschung (atomare Struktur)"],
+  chem:["FrCl","Fr₂O"]},
+88:{sym:"Ra",pos:[2,7],cat:"alkaline",de:"Radium",fr:"Radium",en:"Radium",la:"Radium",z:88,p:88,n:138,e:88,mass:226,
+  mp:700,bp:1737,state:"fest",
+  tech:["Elektrotechnik: Leuchtfarben für Zifferblätter (historisch, heute verboten)","Bestrahlungsquellen (Medizin, historisch)"],
+  chem:["RaCl₂","RaSO₄","RaBr₂"]},
+89:{sym:"Ac",pos:[3,7],cat:"actinide",de:"Actinium",fr:"Actinium",en:"Actinium",la:"Actinium",z:89,p:89,n:138,e:89,mass:227,
+  mp:1050,bp:3200,state:"fest",
+  tech:["Elektrotechnik: keine technische Nutzung","Neutronenquelle (Ac-Be)","Krebstherapie (²²⁵Ac, gezielte Alphatherapie)"],
+  chem:["Ac₂O₃","AcCl₃"]},
+90:{sym:"Th",pos:[4,7],cat:"actinide",de:"Thorium",fr:"Thorium",en:"Thorium",la:"Thorium",z:90,p:90,n:142,e:90,mass:232.04,
+  mp:1750,bp:4788,state:"fest",
+  tech:["Elektrotechnik: Glühstrümpfe (historisch)","WIG-Schweißelektroden (thoriert, ersetzt durch CeO₂)","Brennstoff in zukünftigen Thorium-Reaktoren","Hochtemperatur-Optik"],
+  chem:["ThO₂","ThF₄","ThCl₄"]},
+91:{sym:"Pa",pos:[5,7],cat:"actinide",de:"Protactinium",fr:"Protactinium",en:"Protactinium",la:"Protactinium",z:91,p:91,n:140,e:91,mass:231.04,
+  mp:1568,bp:4027,state:"fest",
+  tech:["Elektrotechnik: keine","Forschung: Zwischenstufe in Thorium-Brutreaktoren"],
+  chem:["Pa₂O₅","PaF₅"]},
+92:{sym:"U",pos:[6,7],cat:"actinide",de:"Uran",fr:"Uranium",en:"Uranium",la:"Uranium",z:92,p:92,n:146,e:92,mass:238.03,
+  mp:1132.2,bp:4131,state:"fest",
+  tech:["Elektrotechnik: Brennstoff in Kernkraftwerken (Stromerzeugung)","Glasfärbung (Uranglas)","Wuchtgewichte (DU)","Atomwaffen"],
+  chem:["UO₂","UF₆","U₃O₈","UCl₄"]},
+93:{sym:"Np",pos:[7,7],cat:"actinide",de:"Neptunium",fr:"Neptunium",en:"Neptunium",la:"Neptunium",z:93,p:93,n:144,e:93,mass:237,
+  mp:644,bp:3902,state:"fest",
+  tech:["Elektrotechnik: Neutronendetektoren","Plutonium-Vorläufer in Reaktoren"],
+  chem:["NpO₂","NpF₆"]},
+94:{sym:"Pu",pos:[8,7],cat:"actinide",de:"Plutonium",fr:"Plutonium",en:"Plutonium",la:"Plutonium",z:94,p:94,n:150,e:94,mass:244,
+  mp:639.4,bp:3228,state:"fest",
+  tech:["Elektrotechnik: RTGs (Radioisotopengeneratoren) für Raumsonden (Voyager, Curiosity)","Brennstoff in Schnellen Brutreaktoren","Atomwaffen"],
+  chem:["PuO₂","PuF₆","PuCl₃"]},
+95:{sym:"Am",pos:[9,7],cat:"actinide",de:"Americium",fr:"Américium",en:"Americium",la:"Americium",z:95,p:95,n:148,e:95,mass:243,
+  mp:1176,bp:2011,state:"fest",
+  tech:["Elektrotechnik: ²⁴¹Am in Ionisationsrauchmeldern (am häufigsten genutzt!)","Industriedickenmessgeräte"],
+  chem:["AmO₂","AmCl₃"]},
+96:{sym:"Cm",pos:[10,7],cat:"actinide",de:"Curium",fr:"Curium",en:"Curium",la:"Curium",z:96,p:96,n:151,e:96,mass:247,
+  mp:1340,bp:3110,state:"fest",
+  tech:["Elektrotechnik: α-Quelle für Röntgenfluoreszenz-Spektrometer (z.B. Mars-Rover APXS)","RTG-Forschung"],
+  chem:["CmO₂","CmCl₃"]},
+97:{sym:"Bk",pos:[11,7],cat:"actinide",de:"Berkelium",fr:"Berkélium",en:"Berkelium",la:"Berkelium",z:97,p:97,n:150,e:97,mass:247,
+  mp:986,bp:2627,state:"fest",
+  tech:["Elektrotechnik: keine","Forschung: Synthese schwererer Elemente (Tennessine)"],
+  chem:["BkO₂","BkCl₃"]},
+98:{sym:"Cf",pos:[12,7],cat:"actinide",de:"Californium",fr:"Californium",en:"Californium",la:"Californium",z:98,p:98,n:153,e:98,mass:251,
+  mp:900,bp:1745,state:"fest",
+  tech:["Elektrotechnik: ²⁵²Cf als Neutronenquelle (Reaktor-Startup, Bohrlochmessungen, Krebstherapie)"],
+  chem:["CfO₂","CfCl₃"]},
+99:{sym:"Es",pos:[13,7],cat:"actinide",de:"Einsteinium",fr:"Einsteinium",en:"Einsteinium",la:"Einsteinium",z:99,p:99,n:153,e:99,mass:252,
+  mp:860,bp:996,state:"fest",
+  tech:["Elektrotechnik: keine","Reine Grundlagenforschung"],
+  chem:["Es₂O₃","EsCl₃"]},
+100:{sym:"Fm",pos:[14,7],cat:"actinide",de:"Fermium",fr:"Fermium",en:"Fermium",la:"Fermium",z:100,p:100,n:157,e:100,mass:257,
+  mp:1527,bp:null,state:"fest",
+  tech:["Elektrotechnik: keine","Reine Grundlagenforschung"],
+  chem:["FmCl₂"]},
+101:{sym:"Md",pos:[15,7],cat:"actinide",de:"Mendelevium",fr:"Mendélévium",en:"Mendelevium",la:"Mendelevium",z:101,p:101,n:157,e:101,mass:258,
+  mp:827,bp:null,state:"fest",
+  tech:["Elektrotechnik: keine","Reine Grundlagenforschung"],
+  chem:["MdCl₃"]},
+102:{sym:"No",pos:[16,7],cat:"actinide",de:"Nobelium",fr:"Nobélium",en:"Nobelium",la:"Nobelium",z:102,p:102,n:157,e:102,mass:259,
+  mp:827,bp:null,state:"fest",
+  tech:["Elektrotechnik: keine","Reine Grundlagenforschung"],
+  chem:["NoCl₂"]},
+103:{sym:"Lr",pos:[17,7],cat:"actinide",de:"Lawrencium",fr:"Lawrencium",en:"Lawrencium",la:"Lawrencium",z:103,p:103,n:159,e:103,mass:266,
+  mp:1627,bp:null,state:"fest",
+  tech:["Elektrotechnik: keine","Reine Grundlagenforschung"],
+  chem:["LrCl₃"]},
+104:{sym:"Rf",pos:[4,7],cat:"transition",de:"Rutherfordium",fr:"Rutherfordium",en:"Rutherfordium",la:"Rutherfordium",z:104,p:104,n:163,e:104,mass:267,
+  mp:null,bp:null,state:"fest (vermutet)",
+  tech:["Elektrotechnik: keine (extrem instabil)","Grundlagenforschung"],
+  chem:["RfCl₄ (vermutet)"]},
+105:{sym:"Db",pos:[5,7],cat:"transition",de:"Dubnium",fr:"Dubnium",en:"Dubnium",la:"Dubnium",z:105,p:105,n:163,e:105,mass:268,
+  mp:null,bp:null,state:"fest (vermutet)",
+  tech:["Elektrotechnik: keine","Grundlagenforschung"],
+  chem:["DbCl₅ (vermutet)"]},
+106:{sym:"Sg",pos:[6,7],cat:"transition",de:"Seaborgium",fr:"Seaborgium",en:"Seaborgium",la:"Seaborgium",z:106,p:106,n:163,e:106,mass:269,
+  mp:null,bp:null,state:"fest (vermutet)",
+  tech:["Elektrotechnik: keine","Grundlagenforschung"],
+  chem:["SgO₃ (vermutet)"]},
+107:{sym:"Bh",pos:[7,7],cat:"transition",de:"Bohrium",fr:"Bohrium",en:"Bohrium",la:"Bohrium",z:107,p:107,n:163,e:107,mass:270,
+  mp:null,bp:null,state:"fest (vermutet)",
+  tech:["Elektrotechnik: keine","Grundlagenforschung"],
+  chem:["BhO₃Cl (vermutet)"]},
+108:{sym:"Hs",pos:[8,7],cat:"transition",de:"Hassium",fr:"Hassium",en:"Hassium",la:"Hassium",z:108,p:108,n:169,e:108,mass:269,
+  mp:null,bp:null,state:"fest (vermutet)",
+  tech:["Elektrotechnik: keine","Grundlagenforschung"],
+  chem:["HsO₄ (vermutet)"]},
+109:{sym:"Mt",pos:[9,7],cat:"unknown",de:"Meitnerium",fr:"Meitnérium",en:"Meitnerium",la:"Meitnerium",z:109,p:109,n:169,e:109,mass:278,
+  mp:null,bp:null,state:"unbekannt",
+  tech:["Elektrotechnik: keine","Grundlagenforschung"],
+  chem:["unbekannt"]},
+110:{sym:"Ds",pos:[10,7],cat:"unknown",de:"Darmstadtium",fr:"Darmstadtium",en:"Darmstadtium",la:"Darmstadtium",z:110,p:110,n:171,e:110,mass:281,
+  mp:null,bp:null,state:"unbekannt",
+  tech:["Elektrotechnik: keine","Grundlagenforschung"],
+  chem:["unbekannt"]},
+111:{sym:"Rg",pos:[11,7],cat:"unknown",de:"Roentgenium",fr:"Roentgenium",en:"Roentgenium",la:"Roentgenium",z:111,p:111,n:171,e:111,mass:282,
+  mp:null,bp:null,state:"unbekannt",
+  tech:["Elektrotechnik: keine","Grundlagenforschung"],
+  chem:["unbekannt"]},
+112:{sym:"Cn",pos:[12,7],cat:"unknown",de:"Copernicium",fr:"Copernicium",en:"Copernicium",la:"Copernicium",z:112,p:112,n:173,e:112,mass:285,
+  mp:null,bp:null,state:"vermutlich flüssig",
+  tech:["Elektrotechnik: keine","Grundlagenforschung"],
+  chem:["unbekannt"]},
+113:{sym:"Nh",pos:[13,7],cat:"unknown",de:"Nihonium",fr:"Nihonium",en:"Nihonium",la:"Nihonium",z:113,p:113,n:173,e:113,mass:286,
+  mp:null,bp:null,state:"unbekannt",
+  tech:["Elektrotechnik: keine","Grundlagenforschung"],
+  chem:["unbekannt"]},
+114:{sym:"Fl",pos:[14,7],cat:"unknown",de:"Flerovium",fr:"Flérovium",en:"Flerovium",la:"Flerovium",z:114,p:114,n:175,e:114,mass:289,
+  mp:null,bp:null,state:"unbekannt",
+  tech:["Elektrotechnik: keine","Grundlagenforschung"],
+  chem:["unbekannt"]},
+115:{sym:"Mc",pos:[15,7],cat:"unknown",de:"Moscovium",fr:"Moscovium",en:"Moscovium",la:"Moscovium",z:115,p:115,n:175,e:115,mass:289,
+  mp:null,bp:null,state:"unbekannt",
+  tech:["Elektrotechnik: keine","Grundlagenforschung"],
+  chem:["unbekannt"]},
+116:{sym:"Lv",pos:[16,7],cat:"unknown",de:"Livermorium",fr:"Livermorium",en:"Livermorium",la:"Livermorium",z:116,p:116,n:177,e:116,mass:293,
+  mp:null,bp:null,state:"unbekannt",
+  tech:["Elektrotechnik: keine","Grundlagenforschung"],
+  chem:["unbekannt"]},
+117:{sym:"Ts",pos:[17,7],cat:"unknown",de:"Tenness",fr:"Tennesse",en:"Tennessine",la:"Tennessium",z:117,p:117,n:177,e:117,mass:294,
+  mp:null,bp:null,state:"unbekannt",
+  tech:["Elektrotechnik: keine","Grundlagenforschung"],
+  chem:["unbekannt"]},
+118:{sym:"Og",pos:[18,7],cat:"unknown",de:"Oganesson",fr:"Oganesson",en:"Oganesson",la:"Oganesson",z:118,p:118,n:176,e:118,mass:294,
+  mp:null,bp:null,state:"unbekannt",
+  tech:["Elektrotechnik: keine","Grundlagenforschung"],
+  chem:["unbekannt"]}
+};
+
+// =============================================================
+//  RENDER PERIODIC TABLE
+// =============================================================
+const ptable = document.getElementById("ptable");
+// Build a map of grid position -> element
+const grid = {};
+for (const z in elements){
+  const el = elements[z];
+  const [col,row] = el.pos;
+  grid[`${row}-${col}`] = z;
+}
+
+// Lanthanides (57-71) on row 9, col 3-17
+// Actinides (89-103) on row 10, col 3-17
+const lanthanides = [];
+for(let z=57; z<=71; z++) lanthanides.push(z);
+const actinides = [];
+for(let z=89; z<=103; z++) actinides.push(z);
+
+// Render rows 1-7 main table; reposition 57 & 89 as placeholders linking to row 9/10
+function buildTable(){
+  let html = "";
+  for(let row=1; row<=7; row++){
+    for(let col=1; col<=18; col++){
+      // Special: Lanthanides placeholder at row 6, col 3
+      if(row===6 && col===3){
+        html += `<div class="cell lanthanide" onclick="showElement(57)">
+          <div class="num">57-71</div>
+          <div class="sym">La-Lu</div>
+          <div class="nm">Lanthanoide</div></div>`;
+        continue;
+      }
+      if(row===7 && col===3){
+        html += `<div class="cell actinide" onclick="showElement(89)">
+          <div class="num">89-103</div>
+          <div class="sym">Ac-Lr</div>
+          <div class="nm">Actinoide</div></div>`;
+        continue;
+      }
+      const z = grid[`${row}-${col}`];
+      if(z && !(lanthanides.includes(parseInt(z)) && row===6) && !(actinides.includes(parseInt(z)) && row===7)){
+        const el = elements[z];
+        // skip if 57-71 in row 6 normal pos or 89-103 in row 7 normal pos
+        if((parseInt(z)>=57 && parseInt(z)<=71) || (parseInt(z)>=89 && parseInt(z)<=103)){
+          html += `<div class="cell empty"></div>`;
+        } else {
+          html += `<div class="cell ${el.cat}" onclick="showElement(${z})">
+            <div class="num">${z}</div>
+            <div class="sym">${el.sym}</div>
+            <div class="nm">${el.de}</div></div>`;
+        }
+      } else {
+        html += `<div class="cell empty"></div>`;
+      }
+    }
+  }
+  // Spacer row
+  html += `<div class="label-row">Lanthanoide / Actinoide</div>`;
+  // Lanthanide row
+  for(let col=1; col<=18; col++){
+    if(col<=2){ html += `<div class="cell empty"></div>`; continue; }
+    if(col===3){ html += `<div class="cell empty"></div>`; continue; }
+    const z = lanthanides[col-4];
+    if(z){
+      const el = elements[z];
+      html += `<div class="cell ${el.cat}" onclick="showElement(${z})">
+        <div class="num">${z}</div>
+        <div class="sym">${el.sym}</div>
+        <div class="nm">${el.de}</div></div>`;
+    } else {
+      html += `<div class="cell empty"></div>`;
+    }
+  }
+  // Actinide row
+  for(let col=1; col<=18; col++){
+    if(col<=2){ html += `<div class="cell empty"></div>`; continue; }
+    if(col===3){ html += `<div class="cell empty"></div>`; continue; }
+    const z = actinides[col-4];
+    if(z){
+      const el = elements[z];
+      html += `<div class="cell ${el.cat}" onclick="showElement(${z})">
+        <div class="num">${z}</div>
+        <div class="sym">${el.sym}</div>
+        <div class="nm">${el.de}</div></div>`;
+    } else {
+      html += `<div class="cell empty"></div>`;
+    }
+  }
+  ptable.innerHTML = html;
+}
+buildTable();
+
+// =============================================================
+//  MODAL
+// =============================================================
+function showElement(z){
+  const el = elements[z];
+  if(!el) return;
+  const tempC = (v) => v===null ? "—" : `${v} °C`;
+  const tempK = (v) => v===null ? "—" : `${(v+273.15).toFixed(2)} K`;
+
+  const html = `
+    <h2>${el.de} <span style="color:var(--muted);font-size:18px">(${el.sym})</span></h2>
+    <div class="symb">Ordnungszahl ${el.z} · Atommasse ${el.mass} u · Kategorie: ${categoryName(el.cat)}</div>
+
+    <div class="section">
+      <h3>Namen in vier Sprachen</h3>
+      <div class="grid2">
+        <p><strong>Deutsch:</strong> ${el.de}</p>
+        <p><strong>Französisch:</strong> ${el.fr}</p>
+        <p><strong>Englisch:</strong> ${el.en}</p>
+        <p><strong>Latein:</strong> ${el.la}</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Atomarer Aufbau</h3>
+      <div class="grid3">
+        <div class="stat"><div class="v">${el.p}</div><div class="l">Protonen</div></div>
+        <div class="stat"><div class="v">${el.n}</div><div class="l">Neutronen</div></div>
+        <div class="stat"><div class="v">${el.e}</div><div class="l">Elektronen</div></div>
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin-top:8px">
+        Die Neutronenzahl bezieht sich auf das häufigste / stabilste Isotop.
+      </p>
+    </div>
+
+    <div class="section">
+      <h3>Aggregatzustand & Temperaturen</h3>
+      <div class="grid3">
+        <div class="stat"><div class="v">${el.state}</div><div class="l">bei 20 °C</div></div>
+        <div class="stat"><div class="v">${tempC(el.mp)}</div><div class="l">Schmelzpunkt</div></div>
+        <div class="stat"><div class="v">${tempC(el.bp)}</div><div class="l">Siedepunkt</div></div>
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin-top:8px">
+        In Kelvin: Schmelz ${tempK(el.mp)} · Siede ${tempK(el.bp)}
+      </p>
+    </div>
+
+    <div class="section">
+      <h3>Anwendungen in der Technik (Elektrotechnik zuerst)</h3>
+      <ul>
+        ${el.tech.map(t=>`<li>${t}</li>`).join("")}
+      </ul>
+    </div>
+
+    <div class="section">
+      <h3>Häufige chemische Verbindungen</h3>
+      <ul>
+        ${el.chem.map(c=>`<li>${c}</li>`).join("")}
+      </ul>
+    </div>
+  `;
+  document.getElementById("modal-content").innerHTML = html;
+  document.getElementById("overlay").classList.add("show");
+}
+
+function closeModal(){
+  document.getElementById("overlay").classList.remove("show");
+}
+
+document.addEventListener("keydown", (e)=>{
+  if(e.key==="Escape") closeModal();
+});
+
+function categoryName(c){
+  return {
+    nonmetal:"Nichtmetall",
+    noblegas:"Edelgas",
+    alkali:"Alkalimetall",
+    alkaline:"Erdalkalimetall",
+    transition:"Übergangsmetall",
+    posttransition:"Hauptgruppenmetall",
+    metalloid:"Halbmetall",
+    halogen:"Halogen",
+    lanthanide:"Lanthanoid",
+    actinide:"Actinoid",
+    unknown:"unbekannt"
+  }[c] || c;
+}
+</script>
+</body>
+</html>
