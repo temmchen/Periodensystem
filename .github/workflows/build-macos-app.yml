@@ -1,0 +1,47 @@
+name: Build macOS app
+
+on:
+  push:
+    branches:
+      - main
+      - 'claude/**'
+    paths:
+      - 'macos-app/**'
+      - '.github/workflows/build-macos-app.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Periodensystem.app
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode & Swift versions
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Build .app bundle
+        working-directory: macos-app
+        run: |
+          chmod +x build_app.sh
+          ./build_app.sh
+
+      - name: Package .app with ditto (preserves bundle integrity)
+        working-directory: macos-app
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent Periodensystem.app Periodensystem.app.zip
+          ls -lh Periodensystem.app.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Periodensystem-macOS
+          path: macos-app/Periodensystem.app.zip
+          if-no-files-found: error
+          retention-days: 30
